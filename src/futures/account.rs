@@ -135,6 +135,34 @@ impl FuturesAccount {
             .post_signed(API::Futures(Futures::Order), request)
     }
 
+    pub fn limit_stop_buy(
+        &self, symbol: impl Into<String>, qty: impl Into<f64>, price: f64,
+        time_in_force: TimeInForce,
+    ) -> Result<Transaction> {
+        let buy = OrderRequest {
+            symbol: symbol.into(),
+            side: OrderSide::Buy,
+            position_side: None,
+            order_type: OrderType::Stop,
+            time_in_force: Some(time_in_force),
+            qty: Some(qty.into()),
+            reduce_only: None,
+            price: Some(price),
+            stop_price: Some(price),
+            close_position: None,
+            activation_price: None,
+            callback_rate: None,
+            working_type: None,
+            price_protect: None,
+        };
+        let order = self.build_order(buy);
+        let request = self
+            .request_builder
+            .build_signed_request(order, self.recv_window)?;
+        self.client
+            .post_signed(API::Futures(Futures::Order), request)
+    }
+
     pub fn limit_sell(
         &self, symbol: impl Into<String>, qty: impl Into<f64>, price: f64,
         time_in_force: TimeInForce,
@@ -149,6 +177,34 @@ impl FuturesAccount {
             reduce_only: None,
             price: Some(price),
             stop_price: None,
+            close_position: None,
+            activation_price: None,
+            callback_rate: None,
+            working_type: None,
+            price_protect: None,
+        };
+        let order = self.build_order(sell);
+        let request = self
+            .request_builder
+            .build_signed_request(order, self.recv_window)?;
+        self.client
+            .post_signed(API::Futures(Futures::Order), request)
+    }
+
+    pub fn limit_stop_sell(
+        &self, symbol: impl Into<String>, qty: impl Into<f64>, price: f64,
+        time_in_force: TimeInForce,
+    ) -> Result<Transaction> {
+        let sell = OrderRequest {
+            symbol: symbol.into(),
+            side: OrderSide::Sell,
+            position_side: None,
+            order_type: OrderType::Stop,
+            time_in_force: Some(time_in_force),
+            qty: Some(qty.into()),
+            reduce_only: None,
+            price: Some(price),
+            stop_price: Some(price),
             close_position: None,
             activation_price: None,
             callback_rate: None,
