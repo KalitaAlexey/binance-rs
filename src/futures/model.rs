@@ -257,6 +257,543 @@ pub struct ChangeLeverageResponse {
     pub symbol: String,
 }
 
-fn default_stop_price() -> f64 { 0.0 }
-fn default_activation_price() -> f64 { 0.0 }
-fn default_price_rate() -> f64 { 0.0 }
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AccountUpdateEvent {
+    #[serde(rename = "e")]
+    pub event_type: String,
+
+    #[serde(rename = "E")]
+    pub event_time: u64,
+
+    #[serde(rename = "T")]
+    pub transaction: u64,
+
+    #[serde(rename = "a")]
+    pub data: AccountUpdateData,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AccountUpdateData {
+    #[serde(rename = "m")]
+    pub reason: AccountUpdateReason,
+
+    #[serde(rename = "B")]
+    pub balance_updates: Vec<AccountBalanceUpdate>,
+
+    #[serde(rename = "P")]
+    pub position: Vec<AccountPositionUpdate>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum AccountUpdateReason {
+    Deposit,
+    Withdraw,
+    Order,
+    FundingFee,
+    WithdrawReject,
+    Adjustment,
+    InsuranceClear,
+    AdminDeposit,
+    AdminWithdraw,
+    MarginTransfer,
+    MarginTypeChange,
+    AssetTransfer,
+    OptionsPremiumFee,
+    OptionsSettleProfit,
+    AutoExchange,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AccountBalanceUpdate {
+    #[serde(rename = "a")]
+    pub asset: String,
+
+    #[serde(rename = "wb")]
+    pub balance: String,
+
+    #[serde(rename = "cw")]
+    pub cross_balance: String,
+
+    #[serde(rename = "bc")]
+    pub balance_change: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AccountPositionUpdate {
+    #[serde(rename = "s")]
+    pub symbol: String,
+
+    #[serde(rename = "pa")]
+    pub position_amount: String,
+
+    #[serde(rename = "ep")]
+    pub entry_price: String,
+
+    #[serde(rename = "cr")]
+    pub accumulated_realized: String,
+
+    #[serde(rename = "up")]
+    pub unrealized: String,
+
+    #[serde(rename = "mt")]
+    pub margin_type: String,
+
+    #[serde(rename = "iw")]
+    pub isolated_wallet: String,
+
+    #[serde(rename = "ps")]
+    pub position_side: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OrderUpdateEvent {
+    #[serde(rename = "e")]
+    pub event_type: String,
+
+    #[serde(rename = "E")]
+    pub event_time: u64,
+
+    #[serde(rename = "T")]
+    pub transaction: u64,
+
+    #[serde(rename = "o")]
+    pub data: OrderUpdateData,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OrderUpdateData {
+    #[serde(rename = "s")]
+    pub symbol: String,
+
+    #[serde(rename = "c")]
+    pub client_order_id: String,
+
+    #[serde(rename = "S")]
+    pub side: OrderUpdateSide,
+
+    #[serde(rename = "o")]
+    pub order_type: String,
+
+    #[serde(rename = "f")]
+    pub time_in_force: String,
+
+    #[serde(rename = "q")]
+    pub original_quantity: String,
+
+    #[serde(rename = "p")]
+    pub original_price: String,
+
+    #[serde(rename = "ap")]
+    pub average_price: String,
+
+    #[serde(rename = "sp")]
+    pub stop_price: String,
+
+    #[serde(rename = "x")]
+    pub execution_type: String,
+
+    #[serde(rename = "X")]
+    pub status: String,
+
+    #[serde(rename = "i")]
+    pub order_id: u64,
+
+    #[serde(rename = "l")]
+    pub last_filled_quantity: String,
+
+    #[serde(rename = "z")]
+    pub filled_accumulated_quantity: String,
+
+    #[serde(rename = "L")]
+    pub last_filled_price: String,
+
+    #[serde(rename = "N")]
+    #[serde(default)]
+    pub commission_asset: Option<String>,
+
+    #[serde(rename = "n")]
+    #[serde(default)]
+    pub commission: Option<String>,
+
+    #[serde(rename = "T")]
+    pub order_trade_time: u64,
+
+    #[serde(rename = "t")]
+    pub trade_id: u64,
+
+    #[serde(rename = "b")]
+    pub bids_notional: String,
+
+    #[serde(rename = "a")]
+    pub asks_notional: String,
+
+    #[serde(rename = "m")]
+    pub trade_maker_side: bool,
+
+    #[serde(rename = "R")]
+    pub reduce_only: bool,
+
+    #[serde(rename = "wt")]
+    pub stop_price_working_type: String,
+
+    #[serde(rename = "ot")]
+    pub original_order_type: String,
+
+    #[serde(rename = "ps")]
+    pub position_side: String,
+
+    #[serde(rename = "cp")]
+    pub close_all: bool,
+
+    #[serde(rename = "AP")]
+    #[serde(default)]
+    pub activation_price: Option<String>,
+
+    #[serde(rename = "cr")]
+    #[serde(default)]
+    pub callback_rate: Option<String>,
+
+    #[serde(rename = "rp")]
+    pub realized_profit: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OrderUpdateSide {
+    Buy,
+    Sell,
+}
+
+#[test]
+fn deserialize_order_update_event() {
+    let value = serde_json::from_str::<OrderUpdateEvent>(
+        r#"{ "e":"ORDER_TRADE_UPDATE", "E":1568879465651, "T":1568879465650,
+        "o":{
+          "s":"BTCUSDT", "c":"TEST", "S":"SELL", "o":"TRAILING_STOP_MARKET",
+          "f":"GTC", "q":"0.001", "p":"0", "ap":"0", "sp":"7103.04", "x":"NEW", "X":"NEW", "i":8886774,
+          "l":"0", "z":"0",
+          "L":"0",
+          "N":"USDT",
+          "n":"0",
+          "T":1568879465651,
+          "t":0,
+          "b":"0",
+          "a":"9.91",
+          "m":false,
+          "R":false,
+          "wt":"CONTRACT_PRICE",
+          "ot":"TRAILING_STOP_MARKET",
+          "ps":"LONG",
+          "cp":false,
+          "AP":"7476.89",
+          "cr":"5.0",
+          "rp":"0"
+        }
+      }
+      "#,
+    ).unwrap();
+    assert_eq!(
+        value,
+        OrderUpdateEvent {
+            event_type: "ORDER_TRADE_UPDATE".to_string(),
+            event_time: 1568879465651,
+            transaction: 1568879465650,
+            data: OrderUpdateData {
+                symbol: "BTCUSDT".to_string(),
+                client_order_id: "TEST".to_string(),
+                side: OrderUpdateSide::Sell,
+                order_type: "TRAILING_STOP_MARKET".to_string(),
+                time_in_force: "GTC".to_string(),
+                original_quantity: "0.001".to_string(),
+                original_price: "0".to_string(),
+                average_price: "0".to_string(),
+                stop_price: "7103.04".to_string(),
+                execution_type: "NEW".to_string(),
+                status: "NEW".to_string(),
+                order_id: 8886774,
+                last_filled_quantity: "0".to_string(),
+                filled_accumulated_quantity: "0".to_string(),
+                last_filled_price: "0".to_string(),
+                commission_asset: Some("USDT".to_string()),
+                commission: Some("0".to_string()),
+                order_trade_time: 1568879465651,
+                trade_id: 0,
+                bids_notional: "0".to_string(),
+                asks_notional: "9.91".to_string(),
+                trade_maker_side: false,
+                reduce_only: false,
+                stop_price_working_type: "CONTRACT_PRICE".to_string(),
+                original_order_type: "TRAILING_STOP_MARKET".to_string(),
+                position_side: "LONG".to_string(),
+                close_all: false,
+                activation_price: Some("7476.89".to_string()),
+                callback_rate: Some("5.0".to_string()),
+                realized_profit: "0".to_string()
+            }
+        }
+    );
+
+    let value = serde_json::from_str::<OrderUpdateEvent>(
+        r#"{"e":"ORDER_TRADE_UPDATE","T":1622142325683,"E":1622142325687,"o":{"s":"DOTUSDT","c":"web_2F1nPfgmy53m5J4Hh9of","S":"BUY","o":"LIMIT","f":"GTC","q":"198.6","p":"23","ap":"0","sp":"0","x":"CANCELED","X":"CANCELED","i":5595810084,"l":"0","z":"0","L":"0","T":1622142325683,"t":0,"b":"0","a":"0","m":false,"R":false,"wt":"CONTRACT_PRICE","ot":"LIMIT","ps":"BOTH","cp":false,"rp":"0","pP":false,"si":0,"ss":0}}"#,
+    ).unwrap();
+    assert_eq!(
+        value,
+        OrderUpdateEvent {
+            event_type: "ORDER_TRADE_UPDATE".to_string(),
+            event_time: 1622142325687,
+            transaction: 1622142325683,
+            data: OrderUpdateData {
+                symbol: "DOTUSDT".to_string(),
+                client_order_id: "web_2F1nPfgmy53m5J4Hh9of".to_string(),
+                side: OrderUpdateSide::Buy,
+                order_type: "LIMIT".to_string(),
+                time_in_force: "GTC".to_string(),
+                original_quantity: "198.6".to_string(),
+                original_price: "23".to_string(),
+                average_price: "0".to_string(),
+                stop_price: "0".to_string(),
+                execution_type: "CANCELED".to_string(),
+                status: "CANCELED".to_string(),
+                order_id: 5595810084,
+                last_filled_quantity: "0".to_string(),
+                filled_accumulated_quantity: "0".to_string(),
+                last_filled_price: "0".to_string(),
+                commission_asset: None,
+                commission: None,
+                order_trade_time: 1622142325683,
+                trade_id: 0,
+                bids_notional: "0".to_string(),
+                asks_notional: "0".to_string(),
+                trade_maker_side: false,
+                reduce_only: false,
+                stop_price_working_type: "CONTRACT_PRICE".to_string(),
+                original_order_type: "LIMIT".to_string(),
+                position_side: "BOTH".to_string(),
+                close_all: false,
+                activation_price: None,
+                callback_rate: None,
+                realized_profit: "0".to_string()
+            }
+        }
+    );
+
+    let value = serde_json::from_str::<OrderUpdateEvent>(
+        r#"{"e":"ORDER_TRADE_UPDATE","T":1622142670086,"E":1622142670089,"o":{"s":"GRTUSDT","c":"web_zf9zndTx6Ih1tuU0paEB","S":"BUY","o":"LIMIT","f":"GTC","q":"12","p":"0.75919","ap":"0","sp":"0","x":"NEW","X":"NEW","i":1697404867,"l":"0","z":"0","L":"0","T":1622142670086,"t":0,"b":"9.11028","a":"0","m":false,"R":false,"wt":"CONTRACT_PRICE","ot":"LIMIT","ps":"BOTH","cp":false,"rp":"0","pP":false,"si":0,"ss":0}}"#,
+    ).unwrap();
+    assert_eq!(
+        value,
+        OrderUpdateEvent {
+            event_type: "ORDER_TRADE_UPDATE".to_string(),
+            event_time: 1622142670089,
+            transaction: 1622142670086,
+            data: OrderUpdateData {
+                symbol: "GRTUSDT".to_string(),
+                client_order_id: "web_zf9zndTx6Ih1tuU0paEB".to_string(),
+                side: OrderUpdateSide::Buy,
+                order_type: "LIMIT".to_string(),
+                time_in_force: "GTC".to_string(),
+                original_quantity: "12".to_string(),
+                original_price: "0.75919".to_string(),
+                average_price: "0".to_string(),
+                stop_price: "0".to_string(),
+                execution_type: "NEW".to_string(),
+                status: "NEW".to_string(),
+                order_id: 1697404867,
+                last_filled_quantity: "0".to_string(),
+                filled_accumulated_quantity: "0".to_string(),
+                last_filled_price: "0".to_string(),
+                commission_asset: None,
+                commission: None,
+                order_trade_time: 1622142670086,
+                trade_id: 0,
+                bids_notional: "9.11028".to_string(),
+                asks_notional: "0".to_string(),
+                trade_maker_side: false,
+                reduce_only: false,
+                stop_price_working_type: "CONTRACT_PRICE".to_string(),
+                original_order_type: "LIMIT".to_string(),
+                position_side: "BOTH".to_string(),
+                close_all: false,
+                activation_price: None,
+                callback_rate: None,
+                realized_profit: "0".to_string()
+            }
+        }
+    );
+
+    let value = serde_json::from_str::<OrderUpdateEvent>(r#"{"e":"ORDER_TRADE_UPDATE","T":1622143071600,"E":1622143071605,"o":{"s":"GRTUSDT","c":"web_TF7zjup9BmWWFluoSz6M","S":"BUY","o":"MARKET","f":"GTC","q":"10","p":"0","ap":"0.76867","sp":"0","x":"TRADE","X":"FILLED","i":1697440152,"l":"10","z":"10","L":"0.76867","n":"0.00307468","N":"USDT","T":1622143071600,"t":69281933,"b":"0","a":"0","m":false,"R":false,"wt":"CONTRACT_PRICE","ot":"MARKET","ps":"BOTH","cp":false,"rp":"0","pP":false,"si":0,"ss":0}}"#).unwrap();
+    assert_eq!(
+        value,
+        OrderUpdateEvent {
+            event_type: "ORDER_TRADE_UPDATE".to_string(),
+            event_time: 1622143071605,
+            transaction: 1622143071600,
+            data: OrderUpdateData {
+                symbol: "GRTUSDT".to_string(),
+                client_order_id: "web_TF7zjup9BmWWFluoSz6M".to_string(),
+                side: OrderUpdateSide::Buy,
+                order_type: "MARKET".to_string(),
+                time_in_force: "GTC".to_string(),
+                original_quantity: "10".to_string(),
+                original_price: "0".to_string(),
+                average_price: "0.76867".to_string(),
+                stop_price: "0".to_string(),
+                execution_type: "TRADE".to_string(),
+                status: "FILLED".to_string(),
+                order_id: 1697440152,
+                last_filled_quantity: "10".to_string(),
+                filled_accumulated_quantity: "10".to_string(),
+                last_filled_price: "0.76867".to_string(),
+                commission_asset: Some("USDT".to_string()),
+                commission: Some("0.00307468".to_string()),
+                order_trade_time: 1622143071600,
+                trade_id: 69281933,
+                bids_notional: "0".to_string(),
+                asks_notional: "0".to_string(),
+                trade_maker_side: false,
+                reduce_only: false,
+                stop_price_working_type: "CONTRACT_PRICE".to_string(),
+                original_order_type: "MARKET".to_string(),
+                position_side: "BOTH".to_string(),
+                close_all: false,
+                activation_price: None,
+                callback_rate: None,
+                realized_profit: "0".to_string()
+            }
+        }
+    );
+
+    let value = serde_json::from_str::<OrderUpdateEvent>(r#"{"e":"ORDER_TRADE_UPDATE","T":1622143569768,"E":1622143569771,"o":{"s":"GRTUSDT","c":"web_055cCwQDrbfL4riYpzDT","S":"SELL","o":"MARKET","f":"GTC","q":"12","p":"0","ap":"0","sp":"0","x":"NEW","X":"NEW","i":1697483971,"l":"0","z":"0","L":"0","T":1622143569768,"t":0,"b":"0","a":"0","m":false,"R":true,"wt":"CONTRACT_PRICE","ot":"MARKET","ps":"BOTH","cp":false,"rp":"0","pP":false,"si":0,"ss":0}}"#).unwrap();
+
+    let value = serde_json::from_str::<crate::websockets::Events>(r#"{"e":"ORDER_TRADE_UPDATE","T":1622143569768,"E":1622143569771,"o":{"s":"GRTUSDT","c":"web_055cCwQDrbfL4riYpzDT","S":"SELL","o":"MARKET","f":"GTC","q":"12","p":"0","ap":"0","sp":"0","x":"NEW","X":"NEW","i":1697483971,"l":"0","z":"0","L":"0","T":1622143569768,"t":0,"b":"0","a":"0","m":false,"R":true,"wt":"CONTRACT_PRICE","ot":"MARKET","ps":"BOTH","cp":false,"rp":"0","pP":false,"si":0,"ss":0}}"#).unwrap();
+}
+
+#[test]
+fn deserialize_account_update_event() {
+    let value = serde_json::from_str::<AccountUpdateEvent>(
+        r#"{
+            "e": "ACCOUNT_UPDATE",
+            "E": 1564745798939,
+            "T": 1564745798938 ,
+            "a":
+              {
+                "m":"ORDER",
+                "B":[
+                  {
+                    "a":"USDT",
+                    "wb":"122624.12345678",
+                    "cw":"100.12345678",
+                    "bc":"50.12345678"
+                  },
+                  {
+                    "a":"BUSD",
+                    "wb":"1.00000000",
+                    "cw":"0.00000000",
+                    "bc":"-49.12345678"
+                  }
+                ],"P":[
+                  {
+                    "s":"BTCUSDT",
+                    "pa":"0",
+                    "ep":"0.00000",
+                    "cr":"200",
+                    "up":"0",
+                    "mt":"isolated",
+                    "iw":"0.00000000",
+                    "ps":"BOTH"
+                  },
+                  {
+                      "s":"BTCUSDT",
+                      "pa":"20",
+                      "ep":"6563.66500",
+                      "cr":"0",
+                      "up":"2850.21200",
+                      "mt":"isolated",
+                      "iw":"13200.70726908",
+                      "ps":"LONG"
+                   },
+                  {
+                      "s":"BTCUSDT",
+                      "pa":"-10",
+                      "ep":"6563.86000",
+                      "cr":"-45.04000000",
+                      "up":"-1423.15600",
+                      "mt":"isolated",
+                      "iw":"6570.42511771",
+                      "ps":"SHORT"
+                  }
+                ]
+              }
+          }
+          "#,
+    )
+    .unwrap();
+    assert_eq!(
+        value,
+        AccountUpdateEvent {
+            event_type: "ACCOUNT_UPDATE".to_string(),
+            event_time: 1564745798939,
+            transaction: 1564745798938,
+            data: AccountUpdateData {
+                reason: AccountUpdateReason::Order,
+                balance_updates: vec![
+                    AccountBalanceUpdate {
+                        asset: "USDT".to_string(),
+                        balance: "122624.12345678".to_string(),
+                        cross_balance: "100.12345678".to_string(),
+                        balance_change: "50.12345678".to_string()
+                    },
+                    AccountBalanceUpdate {
+                        asset: "BUSD".to_string(),
+                        balance: "1.00000000".to_string(),
+                        cross_balance: "0.00000000".to_string(),
+                        balance_change: "-49.12345678".to_string()
+                    }
+                ],
+                position: vec![
+                    AccountPositionUpdate {
+                        symbol: "BTCUSDT".to_string(),
+                        position_amount: "0".to_string(),
+                        entry_price: "0.00000".to_string(),
+                        accumulated_realized: "200".to_string(),
+                        unrealized: "0".to_string(),
+                        margin_type: "isolated".to_string(),
+                        isolated_wallet: "0.00000000".to_string(),
+                        position_side: "BOTH".to_string()
+                    },
+                    AccountPositionUpdate {
+                        symbol: "BTCUSDT".to_string(),
+                        position_amount: "20".to_string(),
+                        entry_price: "6563.66500".to_string(),
+                        accumulated_realized: "0".to_string(),
+                        unrealized: "2850.21200".to_string(),
+                        margin_type: "isolated".to_string(),
+                        isolated_wallet: "13200.70726908".to_string(),
+                        position_side: "LONG".to_string()
+                    },
+                    AccountPositionUpdate {
+                        symbol: "BTCUSDT".to_string(),
+                        position_amount: "-10".to_string(),
+                        entry_price: "6563.86000".to_string(),
+                        accumulated_realized: "-45.04000000".to_string(),
+                        unrealized: "-1423.15600".to_string(),
+                        margin_type: "isolated".to_string(),
+                        isolated_wallet: "6570.42511771".to_string(),
+                        position_side: "SHORT".to_string()
+                    }
+                ]
+            }
+        }
+    );
+}
+
+fn default_stop_price() -> f64 {
+    0.0
+}
+fn default_activation_price() -> f64 {
+    0.0
+}
+fn default_price_rate() -> f64 {
+    0.0
+}

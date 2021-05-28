@@ -14,6 +14,7 @@ pub struct Client {
     secret_key: String,
     host: String,
     inner_client: reqwest::blocking::Client,
+    timestamp_shift: Option<i64>,
 }
 
 impl Client {
@@ -27,6 +28,7 @@ impl Client {
                 .pool_idle_timeout(None)
                 .build()
                 .unwrap(),
+            timestamp_shift: None,
         }
     }
 

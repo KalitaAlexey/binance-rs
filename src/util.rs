@@ -3,6 +3,30 @@ use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::Value;
 
+#[derive(Clone, Default)]
+pub struct RequestBuilder {
+    pub timestamp_shift: i64,
+}
+
+impl RequestBuilder {
+    pub fn build_signed_request(
+        &self, mut parameters: BTreeMap<String, String>, recv_window: u64,
+    ) -> Result<String> {
+        let since_epoch = SystemTime::now().duration_since(UNIX_EPOCH)?;
+        let time = since_epoch.as_secs() * 1000 + u64::from(since_epoch.subsec_nanos()) / 1_000_000;
+        let time = if self.timestamp_shift >= 0 {
+            time + self.timestamp_shift as u64
+        } else {
+            time - self.timestamp_shift.abs() as u64
+        };
+        if recv_window > 0 {
+            parameters.insert("recvWindow".into(), recv_window.to_string());
+        }
+        parameters.insert("timestamp".into(), time.to_string());
+        Ok(build_request(parameters))
+    }
+}
+
 pub fn build_request(parameters: BTreeMap<String, String>) -> String {
     let mut request = String::new();
     for (key, value) in parameters {
@@ -13,11 +37,14 @@ pub fn build_request(parameters: BTreeMap<String, String>) -> String {
     request
 }
 
-pub fn build_signed_request(parameters: BTreeMap<String, String>, recv_window: u64,) -> Result<String> {
+pub fn build_signed_request(
+    parameters: BTreeMap<String, String>, recv_window: u64,
+) -> Result<String> {
     build_signed_request_custom(parameters, recv_window, SystemTime::now())
 }
 
-pub fn build_signed_request_custom(mut parameters: BTreeMap<String, String>, recv_window: u64, start: SystemTime,
+pub fn build_signed_request_custom(
+    mut parameters: BTreeMap<String, String>, recv_window: u64, start: SystemTime,
 ) -> Result<String> {
     if recv_window > 0 {
         parameters.insert("recvWindow".into(), recv_window.to_string());

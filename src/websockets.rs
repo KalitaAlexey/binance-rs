@@ -18,22 +18,25 @@ enum WebsocketAPI {
 }
 
 impl WebsocketAPI {
-
     fn params(self, subscription: &str) -> String {
         match self {
             WebsocketAPI::Default => format!("wss://stream.binance.com:9443/ws/{}", subscription),
-            WebsocketAPI::MultiStream => format!("wss://stream.binance.com:9443/stream?streams={}", subscription),
+            WebsocketAPI::MultiStream => format!(
+                "wss://stream.binance.com:9443/stream?streams={}",
+                subscription
+            ),
             WebsocketAPI::Custom(url) => url,
         }
     }
-
 }
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum WebsocketEvent {
     AccountUpdate(AccountUpdateEvent),
+    FuturesAccountUpdate(crate::futures::model::AccountUpdateEvent),
     OrderTrade(OrderTradeEvent),
+    FuturesOrderUpdate(crate::futures::model::OrderUpdateEvent),
     AggrTrades(AggrTradesEvent),
     Trade(TradeEvent),
     OrderBook(OrderBook),
@@ -51,12 +54,14 @@ pub struct WebSockets<'a> {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
-enum Events {
+pub enum Events {
     Vec(Vec<DayTickerEvent>),
     DayTickerEvent(DayTickerEvent),
     BookTickerEvent(BookTickerEvent),
     AccountUpdateEvent(AccountUpdateEvent),
+    FuturesAccountUpdateEvent(crate::futures::model::AccountUpdateEvent),
     OrderTradeEvent(OrderTradeEvent),
+    FuturesOrderUpdate(crate::futures::model::OrderUpdateEvent),
     AggrTradesEvent(AggrTradesEvent),
     TradeEvent(TradeEvent),
     KlineEvent(KlineEvent),
@@ -65,7 +70,6 @@ enum Events {
 }
 
 impl<'a> WebSockets<'a> {
-
     pub fn new<Callback>(handler: Callback) -> WebSockets<'a>
     where
         Callback: FnMut(WebsocketEvent) -> Result<()> + 'a,
@@ -95,7 +99,7 @@ impl<'a> WebSockets<'a> {
                 self.socket = Some(answer);
                 Ok(())
             }
-            Err(e) => bail!(format!("Error during handshake {}", e))
+            Err(e) => bail!(format!("Error during handshake {}", e)),
         }
     }
 
@@ -106,13 +110,12 @@ impl<'a> WebSockets<'a> {
         }
         bail!("Not able to close the connection");
     }
-    
+
     pub fn test_handle_msg(&mut self, msg: &str) -> Result<()> {
         self.handle_msg(msg)
     }
 
     fn handle_msg(&mut self, msg: &str) -> Result<()> {
-
         let value: serde_json::Value = serde_json::from_str(msg)?;
 
         if let Some(data) = value.get("data") {
@@ -132,8 +135,12 @@ impl<'a> WebSockets<'a> {
                 Events::KlineEvent(v) => WebsocketEvent::Kline(v),
                 Events::OrderBook(v) => WebsocketEvent::OrderBook(v),
                 Events::DepthOrderBookEvent(v) => WebsocketEvent::DepthOrderBook(v),
+                Events::FuturesAccountUpdateEvent(v) => WebsocketEvent::FuturesAccountUpdate(v),
+                Events::FuturesOrderUpdate(v) => WebsocketEvent::FuturesOrderUpdate(v),
             };
             (self.handler)(action)?;
+        } else {
+            println!("msg: {}", msg);
         }
         Ok(())
     }
@@ -149,11 +156,10 @@ impl<'a> WebSockets<'a> {
                         }
                     }
                     Message::Ping(_) | Message::Pong(_) | Message::Binary(_) => (),
-                    Message::Close(e) => bail!(format!("Disconnected {:?}", e))
+                    Message::Close(e) => bail!(format!("Disconnected {:?}", e)),
                 }
             }
         }
         Ok(())
     }
-
 }
